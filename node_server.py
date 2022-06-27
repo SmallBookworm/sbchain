@@ -6,8 +6,9 @@ import time
 from urllib import response
 from flask import Flask, request
 import requests
-from Blockchain import Blockchain
-from Block import Block
+from blockchain import Blockchain
+from block import Block
+from app.transaction import Transaction
 
 app = Flask(__name__)
 
@@ -35,33 +36,20 @@ def new_transaction():
     
     # Then we add the transaction to our list
     
-    if validate_signature(new_txion['from'], new_txion['signature'], new_txion['file_hash']):
+    if Transaction.is_valid(new_txion,new_txion['signature'],new_txion['hash']):
         blockchain.add_new_transaction(new_txion)
         # Because the transaction was successfully
         # submitted, we log it to our console
         print("New transaction")
-        print("hash: {0}".format(new_txion['file_hash']))
-        print("FROM: {0}".format(new_txion['from']))
-        print("TO: {0}".format(new_txion['to']))
+        print("hash: {0}".format(new_txion['hash']))
+        print("FROM: {0}".format(new_txion['from_addr']))
+        print("TO: {0}".format(new_txion['to_addr']))
         print("AMOUNT: {0}\n".format(new_txion['amount']))
         # Then we let the client know it worked out
         return "Transaction submission successful\n", 201
     else:
         return "Transaction submission failed. Wrong signature\n", 400
     
-def validate_signature(public_key, signature, message):
-    """Verifies if the signature is correct. This is used to prove
-    it's you (and not someone else) trying to do a transaction with your
-    address. Called when a user tries to submit a new transaction.
-    """
-    public_key = (base64.b64decode(public_key)).hex()
-    signature = base64.b64decode(signature)
-    vk = ecdsa.VerifyingKey.from_string(bytes.fromhex(public_key), curve=ecdsa.SECP256k1)
-    # Try changing into an if/else statement as except is too broad.
-    try:
-        return vk.verify(signature, message.encode())
-    except:
-        return False
 
 # endpoint to return the node's copy of the chain.
 # Our application will be using this endpoint to query

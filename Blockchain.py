@@ -1,6 +1,6 @@
 import time
 from unittest import result
-from Block import Block
+from block import Block
 
 
 class Blockchain:

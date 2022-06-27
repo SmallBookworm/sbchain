@@ -1,6 +1,7 @@
 from fractions import Fraction
 import sys
 from turtle import pos
+from app.transaction import Transaction
 
 from app.utils import fernetfile, myedsa
 
@@ -35,13 +36,13 @@ def fetch_posts():
         chain = json.loads(response.content)
         for block in chain["chain"]:
             for tx in block["transactions"]:
-                tx["index"] = block["index"]
-                tx["hash"] = block["previous_hash"]
-                tx["timestamp"] = block["timestamp"]
+                tx["block_index"] = block["index"]
+                tx["block_hash"] = block["hash"]
+                tx["block_timestamp"] = block["timestamp"]
                 content.append(tx)
 
         global posts
-        posts = sorted(content, key=lambda k: k['timestamp'],
+        posts = sorted(content, key=lambda k: k['block_timestamp'],
                        reverse=True)
 
 
@@ -75,10 +76,14 @@ def register_with():
 
     return redirect('/')
 
+
+client_private_key = "4c18327e973d0f2a65bcbd297965faa1f406363c76836af55ed9e2390cd9bc16"
+client_address = "so83hSljI5PBSzknTR5ChOixY/9nLKgIF6bdFgpnzmfhWSS5hUHMtqHveq80a7omwKZK2HMjDYnT4GttsZAf+w=="
 # For fast debugging REMOVE LATER
 private_key = "181f2448fa4636315032e15bb9cbc3053e10ed062ab0b2680a37cd8cb51f53f2"
-amount = "1"
+
 addr_from = "SD5IZAuFixM3PTmkm5ShvLm1tbDNOmVlG7tg6F5r7VHxPNWkNKbzZfa+JdKmfBAIhWs9UKnQLOOL1U+R3WxcsQ=="
+
 
 @app.route('/submit', methods=['POST'])
 def submit_file():
@@ -101,20 +106,26 @@ def submit_file():
         file.save(filepath)
         key = fernetfile.get_key()
         fernetfile.encrypt(filepath, key)
-        #hash = ipfs_add(filepath)
-        hash = filepath
-        
+        #file_hash = ipfs_add(filepath)
+        file_hash = filepath
 
         info = {'creater': addr_from,
-                'filename': filename, 'key': key.decode(), 'hash': hash}
-        signature = myedsa.sign_ECDSA_msg(private_key, hash)
-        message_password = fernetfile.derive_key(private_key)
-        post_object = {'from': addr_from,
-                       'to': addr_from,
-                       'amount': amount,
-                       "signature": signature.decode(),
-                       "file_hash": hash,
-                       "message": fernetfile.encrypt_str(json.dumps(info), message_password).decode()}
+                'filename': filename, 'key': key.decode(), 'hash': file_hash}
+
+        # encrypt file by client
+        message_password = fernetfile.derive_key(client_private_key)
+        ecmessage = fernetfile.encrypt_str(
+            json.dumps(info), message_password).decode()
+
+        new_transaction = Transaction(addr_from, addr_from, "0", ecmessage, 1)
+        signature, hash = new_transaction.compute_signature(private_key)
+        post_object = {'from_addr': addr_from,
+                       'to_addr': new_transaction.to_addr,
+                       'amount': new_transaction.amount,
+                       'previous_hash': new_transaction.previous_hash,
+                       "signature": signature,
+                       "hash": hash,
+                       "message": ecmessage}
         # Submit a transaction
         new_tx_address = "{}/new_transaction".format(CONNECTED_NODE_ADDRESS)
 
@@ -131,27 +142,42 @@ def submit_file():
 def uploaded_file(info):
     return "File info: {}".format(info)
 
+
 @app.route('/download_file/<message>', methods=['GET'])
 def download(message):
-    message_password = fernetfile.derive_key(private_key)
+    message_password = fernetfile.derive_key(client_private_key)
     try:
-        messagejson=fernetfile.decrypt_str(message,message_password).decode()
-        post=json.loads(messagejson)
+        messagejson = fernetfile.decrypt_str(
+            message, message_password).decode()
+        post = json.loads(messagejson)
         if post['hash']:
             return "File info: {}".format(post)
     except:
         return 'The file do not belong to you.'
 
-@app.route('/transaction_file/<message>', methods=['GET'])
-def transaction(message):
-    message_password = fernetfile.derive_key(private_key)
+
+@app.route('/transaction_file/', methods=['POST'])
+def transaction():
+    trans_data=request.get_json()
+    previous_transaction = Transaction(trans_data["from_addr"],
+                                       trans_data["to_addr"],
+                                       trans_data["previous_hash"],
+                                       trans_data["message"],
+                                       trans_data["amount"])
     try:
-        messagejson=fernetfile.decrypt_str(message,message_password).decode()
-        post=json.loads(messagejson)
-        if post['hash']:
-            return "File info: {}".format(post)
+        if Transaction.is_valid(trans_data,trans_data['signature'],trans_data['hash']):
+           #这里应该像上传新文件一样，进行新的hash运算
+            if trans_data["private_key"]==private_key:
+                new_transaction = Transaction(previous_transaction.to_addr,
+                                          trans_data["new_addr"],
+                                          trans_data["hash"],
+                                          previous_transaction.message,
+                                          previous_transaction.amount)
+                return "File info: {}".format(new_transaction), 200
+            else:
+                return 'The file do not belong to you.', 400
     except:
-        return 'The file do not belong to you.'
+        return 'The file do not belong to you.', 400
 
 
 def timestamp_to_string(epoch_time):
