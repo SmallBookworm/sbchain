@@ -1,5 +1,6 @@
 from fractions import Fraction
 import sys
+from turtle import pos
 
 from app.utils import fernetfile, myedsa
 
@@ -74,6 +75,10 @@ def register_with():
 
     return redirect('/')
 
+# For fast debugging REMOVE LATER
+private_key = "181f2448fa4636315032e15bb9cbc3053e10ed062ab0b2680a37cd8cb51f53f2"
+amount = "1"
+addr_from = "SD5IZAuFixM3PTmkm5ShvLm1tbDNOmVlG7tg6F5r7VHxPNWkNKbzZfa+JdKmfBAIhWs9UKnQLOOL1U+R3WxcsQ=="
 
 @app.route('/submit', methods=['POST'])
 def submit_file():
@@ -96,11 +101,9 @@ def submit_file():
         file.save(filepath)
         key = fernetfile.get_key()
         fernetfile.encrypt(filepath, key)
-        hash = 'ipfs_add(filepath)'
-        # For fast debugging REMOVE LATER
-        private_key = "181f2448fa4636315032e15bb9cbc3053e10ed062ab0b2680a37cd8cb51f53f2"
-        amount = "1"
-        addr_from = "SD5IZAuFixM3PTmkm5ShvLm1tbDNOmVlG7tg6F5r7VHxPNWkNKbzZfa+JdKmfBAIhWs9UKnQLOOL1U+R3WxcsQ=="
+        #hash = ipfs_add(filepath)
+        hash = filepath
+        
 
         info = {'creater': addr_from,
                 'filename': filename, 'key': key.decode(), 'hash': hash}
@@ -127,6 +130,28 @@ def submit_file():
 @app.route('/uploads/<info>')
 def uploaded_file(info):
     return "File info: {}".format(info)
+
+@app.route('/download_file/<message>', methods=['GET'])
+def download(message):
+    message_password = fernetfile.derive_key(private_key)
+    try:
+        messagejson=fernetfile.decrypt_str(message,message_password).decode()
+        post=json.loads(messagejson)
+        if post['hash']:
+            return "File info: {}".format(post)
+    except:
+        return 'The file do not belong to you.'
+
+@app.route('/transaction_file/<message>', methods=['GET'])
+def transaction(message):
+    message_password = fernetfile.derive_key(private_key)
+    try:
+        messagejson=fernetfile.decrypt_str(message,message_password).decode()
+        post=json.loads(messagejson)
+        if post['hash']:
+            return "File info: {}".format(post)
+    except:
+        return 'The file do not belong to you.'
 
 
 def timestamp_to_string(epoch_time):

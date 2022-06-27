@@ -23,7 +23,10 @@
     {% for post in posts %}
     <div class="post_box">
 	   <div class="post_box-header">
-	      <div class="post_box-options"><button class="option-btn">Reply</button></div>
+	      <div class="post_box-options">
+			<a href="{{url_for('transaction',message=post.message)}}" ><button >Transaction</button></a>
+			<a href="{{url_for('download',message=post.message)}}" target="_blank"><button >Download</button></a>
+		</div>
 	      <div style="background: rgb(0, 97, 146) none repeat scroll 0% 0%; box-shadow: rgb(0, 97, 146) 0px 0px 0px 2px;" class="post_box-avatar">{{post.from}}</div>
 	      <div class="name-header">{{post.amount}}</div>
 	      <div class="post_box-subtitle"> To <i>{{post.to}}</i></div>
