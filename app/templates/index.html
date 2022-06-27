@@ -5,10 +5,10 @@
 	<br>
 
 	<center>
-	<form action="/submit" id="textform" method="post">
-	    <textarea name="content" rows="4" cols="50" placeholder="Just write whatever you want to..."></textarea>
+	<form action="/submit" id="textform" method="post" enctype=multipart/form-data>
+	    <input type="file" name="file">
 	    <br>
-	    <input type="text" name="author" placeholder="Your name">
+	    <input type="text" name="addr" placeholder="Your address">
 	    <input type="submit" value="Post">
 	</form>
 	</center>
@@ -26,11 +26,11 @@
 	      <div class="post_box-options"><button class="option-btn">Reply</button></div>
 	      <div style="background: rgb(0, 97, 146) none repeat scroll 0% 0%; box-shadow: rgb(0, 97, 146) 0px 0px 0px 2px;" class="post_box-avatar">{{post.from}}</div>
 	      <div class="name-header">{{post.amount}}</div>
-	      <div class="post_box-subtitle"> Posted at <i>{{readable_time(post.timestamp)}}</i></div>
+	      <div class="post_box-subtitle"> To <i>{{post.to}}</i></div>
 	   </div>
 	   <div>
 	      <div class="post_box-body">
-	         <p>{{post.to}}</p>
+	         <p>{{post.message}}</p>
 	      </div>
 	   </div>
 	</div>

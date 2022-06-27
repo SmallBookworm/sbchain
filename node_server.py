@@ -34,11 +34,13 @@ def new_transaction():
 
     
     # Then we add the transaction to our list
-    if validate_signature(new_txion['from'], new_txion['signature'], new_txion['message']):
+    
+    if validate_signature(new_txion['from'], new_txion['signature'], new_txion['file_hash']):
         blockchain.add_new_transaction(new_txion)
         # Because the transaction was successfully
         # submitted, we log it to our console
         print("New transaction")
+        print("hash: {0}".format(new_txion['file_hash']))
         print("FROM: {0}".format(new_txion['from']))
         print("TO: {0}".format(new_txion['to']))
         print("AMOUNT: {0}\n".format(new_txion['amount']))

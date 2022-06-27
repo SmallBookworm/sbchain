@@ -1,10 +1,19 @@
+from fractions import Fraction
+import sys
+
+from app.utils import fernetfile, myedsa
+
 import datetime
 import json
+import os
 
 import requests
-from flask import render_template, redirect, request
+from flask import flash, render_template, redirect, request, send_from_directory, url_for
+from werkzeug.utils import secure_filename
 
 from app import app
+from app.utils.ipfs import ipfs_add
+
 
 # The node with which our application interacts, there can be multiple
 # such nodes as well.
@@ -27,7 +36,7 @@ def fetch_posts():
             for tx in block["transactions"]:
                 tx["index"] = block["index"]
                 tx["hash"] = block["previous_hash"]
-                tx["timestamp"]=block["timestamp"]
+                tx["timestamp"] = block["timestamp"]
                 content.append(tx)
 
         global posts
@@ -52,7 +61,6 @@ def register_with():
     Endpoint to register_with.
     """
 
-
     post_object = {
         'node_address': "http://127.0.0.1:8001",
     }
@@ -66,27 +74,59 @@ def register_with():
 
     return redirect('/')
 
+
 @app.route('/submit', methods=['POST'])
-def submit_textarea():
+def submit_file():
     """
     Endpoint to create a new transaction via our application.
     """
-    post_content = request.form["content"]
-    author = request.form["author"]
+    if 'file' not in request.files:
+        flash('No file part')
+        return redirect(request.url)
+    file = request.files['file']
+    # if user does not select file, browser also
+    # submit an empty part without filename
+    if file.filename == '':
+        flash('No selected file')
+    if file:
+        addr = request.form["addr"]
+        filename = secure_filename(file.filename)
 
-    post_object = {
-        'author': author,
-        'content': post_content,
-    }
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        key = fernetfile.get_key()
+        fernetfile.encrypt(filepath, key)
+        hash = 'ipfs_add(filepath)'
+        # For fast debugging REMOVE LATER
+        private_key = "181f2448fa4636315032e15bb9cbc3053e10ed062ab0b2680a37cd8cb51f53f2"
+        amount = "1"
+        addr_from = "SD5IZAuFixM3PTmkm5ShvLm1tbDNOmVlG7tg6F5r7VHxPNWkNKbzZfa+JdKmfBAIhWs9UKnQLOOL1U+R3WxcsQ=="
 
-    # Submit a transaction
-    new_tx_address = "{}/new_transaction".format(CONNECTED_NODE_ADDRESS)
+        info = {'creater': addr_from,
+                'filename': filename, 'key': key.decode(), 'hash': hash}
+        signature = myedsa.sign_ECDSA_msg(private_key, hash)
+        message_password = fernetfile.derive_key(private_key)
+        post_object = {'from': addr_from,
+                       'to': addr_from,
+                       'amount': amount,
+                       "signature": signature.decode(),
+                       "file_hash": hash,
+                       "message": fernetfile.encrypt_str(json.dumps(info), message_password).decode()}
+        # Submit a transaction
+        new_tx_address = "{}/new_transaction".format(CONNECTED_NODE_ADDRESS)
 
-    requests.post(new_tx_address,
-                  json=post_object,
-                  headers={'Content-type': 'application/json'})
+        requests.post(new_tx_address,
+                      json=post_object,
+                      headers={'Content-type': 'application/json'})
+        return redirect(url_for('uploaded_file',
+                                info=info))
 
     return redirect('/')
+
+
+@app.route('/uploads/<info>')
+def uploaded_file(info):
+    return "File info: {}".format(info)
 
 
 def timestamp_to_string(epoch_time):
