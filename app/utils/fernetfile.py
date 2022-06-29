@@ -1,4 +1,5 @@
 import base64
+import os
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
@@ -41,7 +42,7 @@ def encrypt(filename, key):
         file.write(encrypted_data)
 
 
-def decrypt(filename, key):
+def decrypt(filename, key,output_name=''):
     """
     Given a filename (str) and key (bytes), it decrypts the file and write it
     """
@@ -51,9 +52,13 @@ def decrypt(filename, key):
         encrypted_data = file.read()
     # decrypt data
     decrypted_data = f.decrypt(encrypted_data)
+
+    if output_name=='':
+        output_name=filename
     # write the original file
-    with open(filename, "wb") as file:
+    with open(output_name, "wb") as file:
         file.write(decrypted_data)
+        os.remove(filename)
 
 
 def derive_key(password):

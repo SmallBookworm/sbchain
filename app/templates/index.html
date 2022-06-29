@@ -26,16 +26,18 @@
 		<div class="post_box-header">
 			<div class="post_box-options">
 				<button onclick="postTransaction(this,{{loop.index0}})">Transaction</button>
-				<a href="{{url_for('download',message=post.message)}}" target="_blank"><button>Download</button></a>
+				<button onclick="download(this,{{loop.index0}})">Download</button>
 			</div>
 			<div style="background: rgb(0, 97, 146) none repeat scroll 0% 0%; box-shadow: rgb(0, 97, 146) 0px 0px 0px 2px;"
-				class="post_box-avatar">{{post.from}}</div>
-			<div class="name-header">{{post.amount}}</div>
-			<div class="post_box-subtitle"> To <i>{{post.to}}</i></div>
+				class="post_box-avatar">{{loop.index}}</div>
+			<div class="name-header">Block <i>{{post.block_index}}</i></div>
+			<div class="post_box-subtitle"> From <i>{{post.from_addr}}</i></div>
+			<div class="post_box-subtitle"> To <i>{{post.to_addr}}</i></div>
 		</div>
 		<div>
 			<div class="post_box-body">
-				<p>{{post.message}}</p>
+				<p>previous_hash:  {{post.previous_hash}}</p>
+				<p>hash:  {{post.hash}}</p>
 			</div>
 		</div>
 	</div>
@@ -55,14 +57,14 @@
 		}
 
 		.post_box-avatar {
-			width: 38px;
-			height: 38px;
+			width: 19px;
+			height: 19px;
 			border-radius: 50%;
 			display: flex;
 			justify-content: center;
 			align-items: center;
 			color: white;
-			font-size: 22px;
+			font-size: 12px;
 			float: left;
 			margin-right: 16px;
 			border: 1px solid #fff;
@@ -123,9 +125,14 @@
 			};
 			//3-监听服务器响应
 			xhr.onreadystatechange = function () {
-				if (xhr.readyState == 4 && xhr.status != 200) {
-					alert("ERROR:" + xhr.responseText);
+				if (xhr.readyState == 4) {
+					if (xhr.status == 200 || xhr.status == 201) {
+						alert("成功:" + xhr.responseText);
+					} else {
+						alert("错误:" + xhr.responseText);
+					}
 				}
+
 			}
 			//应该用私钥签名而不是直接传，http很不安全
 			var private_key = document.getElementById('private_key').value
@@ -133,6 +140,33 @@
 			xhr.send(JSON.stringify(tans));
 		}
 
+	}
+
+	function download(element, index){
+
+		var xhr = new XMLHttpRequest();
+			xhr.open("POST", '/download_file', true);
+
+			//发送合适的请求头信息
+			xhr.setRequestHeader("Content-type", "application/json");
+
+			xhr.onload = function () {
+				// 请求结束后，在此处写处理代码
+			};
+			//3-监听服务器响应
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState == 4) {
+					if (xhr.status == 200 || xhr.status == 201) {
+						alert("成功:" + xhr.responseText);
+					} else {
+						alert("错误:" + xhr.responseText);
+					}
+				}
+			}
+			//应该用私钥签名而不是直接传，http很不安全
+			var private_key = document.getElementById('private_key').value
+			var tans = Object.assign({}, posts[index], { new_addr: 'localstorage', private_key: private_key })
+			xhr.send(JSON.stringify(tans));
 	}
 </script>
 {% endblock %}
