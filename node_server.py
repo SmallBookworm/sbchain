@@ -6,6 +6,7 @@ import time
 from urllib import response
 from flask import Flask, request
 import requests
+from app.utils import hostip
 from blockchain import Blockchain
 from block import Block
 from app.transaction import Transaction
@@ -18,6 +19,8 @@ blockchain.create_genesis_block()
 
 # the address to other participating members of the network
 peers = set()
+# only port:8000
+localhost_url="http://"+hostip.get_host_ip()+":8000"
 
 
 # endpoint to submit a new transaction. This will be used by
@@ -45,6 +48,9 @@ def new_transaction():
         print("FROM: {0}".format(new_txion['from_addr']))
         print("TO: {0}".format(new_txion['to_addr']))
         print("AMOUNT: {0}\n".format(new_txion['amount']))
+        # mine auto
+        mine_unconfirmed_transactions()
+
         # Then we let the client know it worked out
         return "Transaction submission successful\n", 201
     else:
@@ -90,7 +96,7 @@ def register_new_peers():
         return "Invalid data", 400
     # add self
     if not peers:
-        peers.add(request.host_url)
+        peers.add(localhost_url)
     # Add the node to the peer list
     peers.add(node_address)
 
@@ -110,7 +116,7 @@ def register_with_existing_node():
     if not node_address:
         return "Invalid data", 400
     # local host url
-    data = {"node_address": request.host_url}
+    data = {"node_address": localhost_url}
     headers = {'Content-Type': "application/json"}
 
     # Make a request to register with remote node and obtain information
@@ -205,7 +211,7 @@ def find_new_chains():
     other_chains = []
     for node in peers:
         # Get their chains using a GET request
-        response = requests.get('{}chain'.format(node))
+        response = requests.get('{}/chain'.format(node))
         chain_data = response.json()
     
         other_chains.append(chain_data)
@@ -220,7 +226,7 @@ def announce_new_block(block, host_url):
     """
     for peer in peers:
         if peer != host_url:
-            url = "{}add_block".format(peer)
+            url = "{}/add_block".format(peer)
             headers = {'Content-Type': "application/json"}
             requests.post(url,
                           data=json.dumps(block.__dict__, sort_keys=True),

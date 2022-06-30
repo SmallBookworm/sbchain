@@ -27,6 +27,7 @@
 			<div class="post_box-options">
 				<button onclick="postTransaction(this,{{loop.index0}})">Transaction</button>
 				<button onclick="download(this,{{loop.index0}})">Download</button>
+				{% if post.amount == 4  %}<a href="/video/1.mp4" target="_blank"><button >Watch Online</button></a>{% endif %}
 			</div>
 			<div style="background: rgb(0, 97, 146) none repeat scroll 0% 0%; box-shadow: rgb(0, 97, 146) 0px 0px 0px 2px;"
 				class="post_box-avatar">{{loop.index}}</div>
@@ -36,8 +37,8 @@
 		</div>
 		<div>
 			<div class="post_box-body">
-				<p>previous_hash:  {{post.previous_hash}}</p>
-				<p>hash:  {{post.hash}}</p>
+				<p>previous_hash: {{post.previous_hash}}</p>
+				<p>hash: {{post.hash}}</p>
 			</div>
 		</div>
 	</div>
@@ -142,31 +143,37 @@
 
 	}
 
-	function download(element, index){
+	function download(element, index) {
 
 		var xhr = new XMLHttpRequest();
-			xhr.open("POST", '/download_file', true);
+		xhr.open("POST", '/download_file', true);
 
-			//发送合适的请求头信息
-			xhr.setRequestHeader("Content-type", "application/json");
+		//发送合适的请求头信息
+		xhr.setRequestHeader("Content-type", "application/json");
 
-			xhr.onload = function () {
-				// 请求结束后，在此处写处理代码
-			};
-			//3-监听服务器响应
-			xhr.onreadystatechange = function () {
-				if (xhr.readyState == 4) {
-					if (xhr.status == 200 || xhr.status == 201) {
-						alert("成功:" + xhr.responseText);
-					} else {
-						alert("错误:" + xhr.responseText);
-					}
+		xhr.onload = function () {
+			// 请求结束后，在此处写处理代码
+		};
+		//3-监听服务器响应
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState == 4) {
+				if (xhr.status == 200 || xhr.status == 201) {
+					//fileName = xhr.getResponseHeader('Content-Disposition').split('=')[1]
+
+					let aLink = document.createElement('a');
+					aLink.href = '/downloaded_file/' + xhr.responseText;
+					aLink.download='';
+					aLink.target='_blank'
+					aLink.click();
+				} else {
+					alert("错误:" + xhr.responseText);
 				}
 			}
-			//应该用私钥签名而不是直接传，http很不安全
-			var private_key = document.getElementById('private_key').value
-			var tans = Object.assign({}, posts[index], { new_addr: 'localstorage', private_key: private_key })
-			xhr.send(JSON.stringify(tans));
+		}
+		//应该用私钥签名而不是直接传，http很不安全
+		var private_key = document.getElementById('private_key').value
+		var tans = Object.assign({}, posts[index], { new_addr: 'localstorage', private_key: private_key })
+		xhr.send(JSON.stringify(tans));
 	}
 </script>
 {% endblock %}

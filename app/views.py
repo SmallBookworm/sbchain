@@ -56,6 +56,11 @@ def index():
                            node_address=CONNECTED_NODE_ADDRESS,
                            readable_time=timestamp_to_string)
 
+@app.route('/video/1.mp4')
+def video():
+    return render_template('video.html',
+                           title='YourNet: Decentralized '
+                                 'content sharing',)
 
 @app.route('/register_with', methods=['GET'])
 def register_with():
@@ -64,7 +69,7 @@ def register_with():
     """
 
     post_object = {
-        'node_address': "http://127.0.0.1:8001",
+        'node_address': "http://192.168.207.75:8000",
     }
 
     # Submit a transaction
@@ -117,15 +122,15 @@ def submit_file():
         message_password = fernetfile.derive_key(client_private_key)
         ecmessage = fernetfile.encrypt_str(
             json.dumps(info), message_password).decode()
-
-        new_transaction = Transaction(addr_from, addr_from, "0", ecmessage, 1)
+        #for video test
+        amount=1 if filename.count('.mp4') ==0 else 4
+        new_transaction = Transaction(addr_from, addr_from, "0", ecmessage, amount)
         signature, hash = new_transaction.compute_signature(private_key)
 
         # Submit a transaction
         response = post_transaction(new_transaction, signature, hash)
 
-        return redirect(url_for('uploaded_file', result=response.content,
-                                info=info))
+        return "{}.<br>File info: {}".format(response.content, info)
 
     return redirect('/')
 
@@ -146,9 +151,7 @@ def post_transaction(new_transaction, signature, hash):
                          headers={'Content-type': 'application/json'})
 
 
-@app.route('/uploads/<result>/<info>')
-def uploaded_file(result, info):
-    return "{}.<br>File info: {}".format(result, info)
+
 
 
 def transaction(trans_data):
@@ -195,12 +198,16 @@ def download():
             filepath = os.path.join(download_path, post['hash'])
             output_path= os.path.join(download_path, post['filename'])
             fernetfile.decrypt(filepath, post['key'],output_path)
-            return "{}<br>File info: {}".format(response_text, post)
+            return post['filename']
         else:
             return response_text, status_code
     except:
         return 'Something error.', 400
 
+@app.route('/downloaded_file/<filename>')
+def downloaded_file(filename):
+    return send_from_directory(app.config['DOWNLOAD_FOLDER'],
+                               filename)
 
 @app.route('/transaction_file/', methods=['POST'])
 def transaction_file():
