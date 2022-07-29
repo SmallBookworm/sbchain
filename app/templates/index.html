@@ -163,7 +163,7 @@
 					let aLink = document.createElement('a');
 					aLink.href = '/downloaded_file/' + xhr.responseText;
 					aLink.download='';
-					aLink.target='_blank'
+					aLink.target='_blank';
 					aLink.click();
 				} else {
 					alert("错误:" + xhr.responseText);

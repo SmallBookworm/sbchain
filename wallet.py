@@ -18,6 +18,8 @@ transaction with same timestamp was added, they should remove it from the
 node_pending_transactions list to avoid it get processed more than 1 time.
 """
 
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 import requests
 import time
 import base64
@@ -27,12 +29,13 @@ import json
 
 def wallet():
     response = None
-    while response not in ["1", "2", "3", "4"]:
+    while response not in ["1", "2", "3", "4","q"]:
         response = input("""What do you want to do?
         1. Generate new wallet
         2. Send coins to another wallet
         3. Check transactions
-        4. Quit\n""")
+        4.Generate new  RSA wallet
+        q. Quit\n""")
     if response == "1":
         # Generate new wallet
         print("""=========================================\n
@@ -46,7 +49,8 @@ IMPORTANT: save this credentials or you won't be able to recover your wallet\n
         amount = input("Amount: number stating how much do you want to send\n")
         print("=========================================\n\n")
         print("Is everything correct?\n")
-        print(F"From: {addr_from}\nPrivate Key: {private_key}\nTo: {addr_to}\nAmount: {amount}\n")
+        print(
+            F"From: {addr_from}\nPrivate Key: {private_key}\nTo: {addr_to}\nAmount: {amount}\n")
         response = input("y/n\n")
         if response.lower() == "y":
             send_transaction(addr_from, private_key, addr_to, amount)
@@ -55,6 +59,8 @@ IMPORTANT: save this credentials or you won't be able to recover your wallet\n
     elif response == "3":  # Will always occur when response == 3.
         check_transactions()
         return wallet()  # return to main menu
+    elif response == "4":
+        generate_RSA_keys()
     else:
         quit()
 
@@ -67,10 +73,10 @@ def send_transaction(addr_from, private_key, addr_to, amount):
     before claiming it as approved!
     """
     # For fast debugging REMOVE LATER
-    private_key="181f2448fa4636315032e15bb9cbc3053e10ed062ab0b2680a37cd8cb51f53f2"
-    amount="3000"
-    addr_from="SD5IZAuFixM3PTmkm5ShvLm1tbDNOmVlG7tg6F5r7VHxPNWkNKbzZfa+JdKmfBAIhWs9UKnQLOOL1U+R3WxcsQ=="
-    addr_to="SD5IZAuFixM3PTmkm5ShvLm1tbDNOmVlG7tg6F5r7VHxPNWkNKbzZfa+JdKmfBAIhWs9UKnQLOOL1U+R3WxcsQ=="
+    private_key = "181f2448fa4636315032e15bb9cbc3053e10ed062ab0b2680a37cd8cb51f53f2"
+    amount = "3000"
+    addr_from = "SD5IZAuFixM3PTmkm5ShvLm1tbDNOmVlG7tg6F5r7VHxPNWkNKbzZfa+JdKmfBAIhWs9UKnQLOOL1U+R3WxcsQ=="
+    addr_to = "SD5IZAuFixM3PTmkm5ShvLm1tbDNOmVlG7tg6F5r7VHxPNWkNKbzZfa+JdKmfBAIhWs9UKnQLOOL1U+R3WxcsQ=="
 
     if len(private_key) == 64:
         signature, message = sign_ECDSA_msg(private_key)
@@ -108,7 +114,8 @@ def generate_ECDSA_keys():
     private_key: str
     public_ley: base64 (to make it shorter)
     """
-    sk = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)  # this is your sign (private key)
+    sk = ecdsa.SigningKey.generate(
+        curve=ecdsa.SECP256k1)  # this is your sign (private key)
     private_key = sk.to_string().hex()  # convert your private key to hex
     vk = sk.get_verifying_key()  # this is your verification key (public key)
     public_key = vk.to_string().hex()
@@ -117,7 +124,8 @@ def generate_ECDSA_keys():
 
     filename = input("Write the name of your new address: ") + ".txt"
     with open(filename, "w") as f:
-        f.write(F"Private key: {private_key}\nWallet address / Public key: {public_key.decode()}")
+        f.write(
+            F"Private key: {private_key}\nWallet address / Public key: {public_key.decode()}")
     print(F"Your new address and private key are now in the file {filename}")
 
 
@@ -132,9 +140,35 @@ def sign_ECDSA_msg(private_key):
     # Get timestamp, round it, make it into a string and encode it to bytes
     message = str(round(time.time()))
     bmessage = message.encode()
-    sk = ecdsa.SigningKey.from_string(bytes.fromhex(private_key), curve=ecdsa.SECP256k1)
+    sk = ecdsa.SigningKey.from_string(
+        bytes.fromhex(private_key), curve=ecdsa.SECP256k1)
     signature = base64.b64encode(sk.sign(bmessage))
     return signature, message
+
+
+def generate_RSA_keys():
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+    public_key = private_key.public_key()
+    publick_pem = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+
+
+    with open("private.pem", "wb") as f:
+        f.write(private_pem)
+    with open("publick.pem", "wb") as f:
+        f.write(publick_pem)
+    print(F"Your new address and private key are now in the file private.pem")
 
 
 if __name__ == '__main__':
