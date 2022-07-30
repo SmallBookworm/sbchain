@@ -5,11 +5,11 @@
 <br>
 
 <center>
-	<div><b>密钥：</b><textarea id='private_key'></textarea></div>
+	<div><b>密钥：</b><textarea id='private_key' name="private_key" form="textform"></textarea></div>
 	<form action="/submit" id="textform" method="post" enctype=multipart/form-data>
-		<input type="file" name="file">
+		<input type="file" name="file" style="width: 200px;">
 		<br>
-		<input type="text" name="addr" placeholder="Your address">
+		<textarea name="addr" placeholder="Your address"></textarea>
 		<input type="submit" value="Post">
 	</form>
 </center>
@@ -135,7 +135,7 @@
 				}
 
 			}
-			//应该用私钥签名而不是直接传，http很不安全
+			//应该用私钥签名而不是直接传，http很不安全,但这里默认服务器在本地
 			var private_key = document.getElementById('private_key').value
 			var tans = Object.assign({}, posts[index], { new_addr: publicKey, private_key: private_key })
 			xhr.send(JSON.stringify(tans));

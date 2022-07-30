@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 def get_key():
     """
-    Generates a key and save it into a file
+    Generates a key
     """
     return Fernet.generate_key()
 

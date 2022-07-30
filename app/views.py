@@ -3,7 +3,7 @@ import sys
 from turtle import pos
 from app.transaction import Transaction
 
-from app.utils import fernetfile, myedsa
+from app.utils import fernetfile, myrsa
 
 import datetime
 import json
@@ -56,11 +56,13 @@ def index():
                            node_address=CONNECTED_NODE_ADDRESS,
                            readable_time=timestamp_to_string)
 
+
 @app.route('/video/1.mp4')
 def video():
     return render_template('video.html',
                            title='YourNet: Decentralized '
                                  'content sharing',)
+
 
 @app.route('/register_with', methods=['GET'])
 def register_with():
@@ -82,12 +84,6 @@ def register_with():
     return redirect('/')
 
 
-client_private_key = "4c18327e973d0f2a65bcbd297965faa1f406363c76836af55ed9e2390cd9bc16"
-client_address = "so83hSljI5PBSzknTR5ChOixY/9nLKgIF6bdFgpnzmfhWSS5hUHMtqHveq80a7omwKZK2HMjDYnT4GttsZAf+w=="
-# For fast debugging REMOVE LATER
-private_key = "181f2448fa4636315032e15bb9cbc3053e10ed062ab0b2680a37cd8cb51f53f2"
-
-addr_from = "SD5IZAuFixM3PTmkm5ShvLm1tbDNOmVlG7tg6F5r7VHxPNWkNKbzZfa+JdKmfBAIhWs9UKnQLOOL1U+R3WxcsQ=="
 
 
 @app.route('/submit', methods=['POST'])
@@ -112,19 +108,24 @@ def submit_file():
         key = fernetfile.get_key()
         fernetfile.encrypt(filepath, key)
         file_hash = ipfs_add(filepath)
-        #debug
+        # debug
         #file_hash = filepath
 
-        info = {'creater': addr_from,
-                'filename': filename, 'key': key.decode(), 'hash': file_hash}
+        private_key = myrsa.load_str_private_key(request.form["private_key"])
+        publick_key = myrsa.load_str_publick_key(addr)
 
-        # encrypt file by client
-        message_password = fernetfile.derive_key(client_private_key)
-        ecmessage = fernetfile.encrypt_str(
-            json.dumps(info), message_password).decode()
-        #for video test
-        amount=1 if filename.count('.mp4') ==0 else 4
-        new_transaction = Transaction(addr_from, addr_from, "0", ecmessage, amount)
+        # encrypt key is the same as encrypt file
+
+        ec_key = myrsa.encrypt(key.decode(), publick_key)
+
+        info = {'creater': addr,
+                'filename': filename, 'key': ec_key.decode(), 'hash': file_hash}
+
+        # for video test
+        amount = 1 if filename.count('.mp4') == 0 else 4
+
+        new_transaction = Transaction(
+            addr, addr, "0", json.dumps(info), amount)
         signature, hash = new_transaction.compute_signature(private_key)
 
         # Submit a transaction
@@ -151,9 +152,6 @@ def post_transaction(new_transaction, signature, hash):
                          headers={'Content-type': 'application/json'})
 
 
-
-
-
 def transaction(trans_data):
     previous_transaction = Transaction(trans_data["from_addr"],
                                        trans_data["to_addr"],
@@ -169,8 +167,11 @@ def transaction(trans_data):
                                               trans_data["hash"],
                                               previous_transaction.message,
                                               previous_transaction.amount)
-                signature, hash = new_transaction.compute_signature(
+
+                private_key = myrsa.load_str_private_key(
                     trans_data["private_key"])
+                signature, hash = new_transaction.compute_signature(
+                    private_key)
 
                 # Submit a transaction
                 response = post_transaction(new_transaction, signature, hash)
@@ -189,25 +190,30 @@ def download():
     try:
         response_text, status_code = transaction(trans_data)
         if status_code == 201:
-            message_password = fernetfile.derive_key(client_private_key)
-            messagejson = fernetfile.decrypt_str(
-                trans_data["message"], message_password).decode()
+
+            messagejson = trans_data["message"]
             post = json.loads(messagejson)
-            download_path=app.config['DOWNLOAD_FOLDER']
-            ipfs_get(post['hash'],download_path)
+            download_path = app.config['DOWNLOAD_FOLDER']
+            ipfs_get(post['hash'], download_path)
             filepath = os.path.join(download_path, post['hash'])
-            output_path= os.path.join(download_path, post['filename'])
-            fernetfile.decrypt(filepath, post['key'],output_path)
+            output_path = os.path.join(download_path, post['filename'])
+
+            private_key = myrsa.load_str_private_key(
+                trans_data["private_key"])
+            key = myrsa.decrypt(post['key'], private_key)
+            fernetfile.decrypt(filepath, key, output_path)
             return post['filename']
         else:
             return response_text, status_code
     except:
         return 'Something error.', 400
 
+
 @app.route('/downloaded_file/<filename>')
 def downloaded_file(filename):
     return send_from_directory(app.config['DOWNLOAD_FOLDER'],
                                filename)
+
 
 @app.route('/transaction_file/', methods=['POST'])
 def transaction_file():

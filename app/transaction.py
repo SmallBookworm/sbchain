@@ -1,8 +1,9 @@
+from datetime import MAXYEAR
 from hashlib import sha256
 import json
 from time import time
 
-from app.utils import myedsa
+from app.utils import myecdsa, myrsa
 
 
 class Transaction(object):
@@ -43,7 +44,12 @@ class Transaction(object):
         """
 
         hash = self.compute_hash()
-        signature = myedsa.sign_ECDSA_msg(private_key, hash).decode()
+        signature = myrsa.sign_msg(hash,private_key).decode()
+        return signature, hash
+
+    def compute_ECDSA_signature(self, private_key):
+        hash = self.compute_hash()
+        signature = myecdsa.sign_ECDSA_msg(private_key, hash).decode()
         return signature, hash
 
     @staticmethod
@@ -57,4 +63,6 @@ class Transaction(object):
                              transaction["message"],
                              transaction["amount"])
 
-        return hash == atrans.compute_hash() and myedsa.validate_signature(transaction["from_addr"], signature, hash)
+        publick_key=myrsa.load_str_publick_key(transaction["from_addr"])
+        
+        return hash == atrans.compute_hash() and myrsa.validate_signature(publick_key, signature, hash)

@@ -164,9 +164,9 @@ def generate_RSA_keys():
     )
 
 
-    with open("private.pem", "wb") as f:
+    with open("private_key.pem", "wb") as f:
         f.write(private_pem)
-    with open("publick.pem", "wb") as f:
+    with open("publick_key.pem", "wb") as f:
         f.write(publick_pem)
     print(F"Your new address and private key are now in the file private.pem")
 

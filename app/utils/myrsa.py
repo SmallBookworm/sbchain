@@ -32,9 +32,19 @@ def generate_RSA_keys():
     with open("publick_key.pem", "wb") as f:
         f.write(publick_pem)
 
+def load_str_private_key(key:str):
+        return serialization.load_pem_private_key(
+            key.encode(),
+            password=None,
+        )
 
-def load_private_key():
-    with open("private_key.pem", "rb") as key_file:
+def load_str_publick_key(key:str):
+        return serialization.load_pem_public_key(
+            key.encode()
+        )
+
+def load_private_key(path="private_key.pem"):
+    with open(path, "rb") as key_file:
         private_key = serialization.load_pem_private_key(
             key_file.read(),
             password=None,
@@ -42,17 +52,17 @@ def load_private_key():
         return private_key
 
 
-def load_publick_key():
-    with open("publick_key.pem", "rb") as key_file:
+def load_publick_key(path="publick_key.pem"):
+    with open(path, "rb") as key_file:
         public_key = serialization.load_pem_public_key(
             key_file.read(),
-            password=None,
         )
         return public_key
 
 
 def encrypt(message: str, public_key: PUBLIC_KEY_TYPES):
     """message: str
+
     return
     ciphertext: base64 (to make it shorter)
     """
