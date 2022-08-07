@@ -9,7 +9,7 @@
 	<form action="/submit" id="textform" method="post" enctype=multipart/form-data>
 		<input type="file" name="file" style="width: 200px;">
 		<br>
-		<textarea name="addr" placeholder="Your address"></textarea>
+		<textarea id="addr" name="addr" placeholder="Reciver address"></textarea>
 		<input type="submit" value="Post">
 	</form>
 </center>
@@ -27,7 +27,7 @@
 			<div class="post_box-options">
 				<button onclick="postTransaction(this,{{loop.index0}})">Transaction</button>
 				<button onclick="download(this,{{loop.index0}})">Download</button>
-				{% if post.amount == 4  %}<a href="/video/1.mp4" target="_blank"><button >Watch Online</button></a>{% endif %}
+				{% if post.type == 4  %}<a href="/video/1.mp4" target="_blank"><button >Watch Online</button></a>{% endif %}
 			</div>
 			<div style="background: rgb(0, 97, 146) none repeat scroll 0% 0%; box-shadow: rgb(0, 97, 146) 0px 0px 0px 2px;"
 				class="post_box-avatar">{{loop.index}}</div>
@@ -112,8 +112,7 @@
 	var posts = {{ posts| tojson}};
 	function postTransaction(element, index) {
 		console.log(posts[index]);
-		var publicKey = prompt("接收方地址：");
-		console.log(publicKey);
+		
 		if (publicKey) {
 			var xhr = new XMLHttpRequest();
 			xhr.open("POST", '/transaction_file', true);
@@ -137,7 +136,8 @@
 			}
 			//应该用私钥签名而不是直接传，http很不安全,但这里默认服务器在本地
 			var private_key = document.getElementById('private_key').value
-			var tans = Object.assign({}, posts[index], { new_addr: publicKey, private_key: private_key })
+			var new_addr = document.getElementById('addr').value
+			var tans = Object.assign({}, posts[index], { new_addr: new_addr, private_key: private_key })
 			xhr.send(JSON.stringify(tans));
 		}
 

@@ -1,18 +1,18 @@
 from datetime import MAXYEAR
 from hashlib import sha256
 import json
-from time import time
+import time
 
 from app.utils import myecdsa, myrsa
 
 
 class Transaction(object):
-    def __init__(self, from_addr, to_addr, previous_hash, message, amount=0) -> None:
+    def __init__(self, from_addr, to_addr, previous_hash, message, type=0, timestamp=time.time()) -> None:
         """
         Constructor for the `Block` class.
         :param from_addr:         publick key of sender.
         :param to_addr:  publick key of reciver.
-        :param amount:     amount of money(file).
+        :param type:     type of transaction: 0、1:file;4:mp4;8:vote.
         :param previous_hash: Hash of the previous transaction.                                        
         """
 
@@ -20,7 +20,8 @@ class Transaction(object):
         self.to_addr = to_addr
         self.previous_hash = previous_hash
         self.message = message
-        self.amount = amount
+        self.type = type
+        self.timestamp = timestamp
 
     def compute_hash(self):
         """
@@ -44,7 +45,7 @@ class Transaction(object):
         """
 
         hash = self.compute_hash()
-        signature = myrsa.sign_msg(hash,private_key).decode()
+        signature = myrsa.sign_msg(hash, private_key).decode()
         return signature, hash
 
     def compute_ECDSA_signature(self, private_key):
@@ -53,16 +54,32 @@ class Transaction(object):
         return signature, hash
 
     @staticmethod
-    def is_valid(transaction, signature, hash):
+    def get_dict(new_transaction, signature, hash):
+        return {'from_addr': new_transaction.from_addr,
+                'to_addr': new_transaction.to_addr,
+                'type': new_transaction.type,
+                'timestamp': new_transaction.timestamp,
+                'previous_hash': new_transaction.previous_hash,
+                "message": new_transaction.message,
+                "signature": signature,
+                "hash": hash}
+
+    @classmethod
+    def create_from_dict(cls, trans_data):
+        return cls(trans_data["from_addr"],
+                   trans_data["to_addr"],
+                   trans_data["previous_hash"],
+                   trans_data["message"],
+                   trans_data["type"],
+                   trans_data["timestamp"])
+
+    @classmethod
+    def is_valid(cls,transaction, signature, hash):
         """
         Check if transaction is valid.
         """
-        atrans = Transaction(transaction["from_addr"],
-                             transaction["to_addr"],
-                             transaction["previous_hash"],
-                             transaction["message"],
-                             transaction["amount"])
+        atrans = cls.create_from_dict(transaction)
 
-        publick_key=myrsa.load_str_publick_key(transaction["from_addr"])
-        
+        publick_key = myrsa.load_str_publick_key(transaction["from_addr"])
+
         return hash == atrans.compute_hash() and myrsa.validate_signature(publick_key, signature, hash)

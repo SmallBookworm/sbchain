@@ -1,3 +1,5 @@
+from operator import truediv
+import re
 import time
 from unittest import result
 from block import Block
@@ -9,6 +11,7 @@ class Blockchain:
 
     def __init__(self):
         self.unconfirmed_transactions = []
+        self.unconfirmed_timestamp = []
         self.chain = []
 
     def create_genesis_block(self):
@@ -61,7 +64,12 @@ class Blockchain:
         return computed_hash
 
     def add_new_transaction(self, transaction):
-        self.unconfirmed_transactions.append(transaction)
+        if transaction['timestamp'] in self.unconfirmed_timestamp:
+            return False
+        else:
+            self.unconfirmed_transactions.append(transaction)
+            self.unconfirmed_timestamp.append(transaction['timestamp'])
+            return True
 
     @classmethod
     def is_valid_proof(cls, block, block_hash):
@@ -112,5 +120,5 @@ class Blockchain:
         self.add_block(new_block, proof)
 
         self.unconfirmed_transactions = []
-
+        self.unconfirmed_timestamp = []
         return True

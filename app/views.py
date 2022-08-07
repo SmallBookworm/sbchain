@@ -122,10 +122,10 @@ def submit_file():
                 'filename': filename, 'key': ec_key.decode(), 'hash': file_hash}
 
         # for video test
-        amount = 1 if filename.count('.mp4') == 0 else 4
+        type = 1 if filename.count('.mp4') == 0 else 4
 
         new_transaction = Transaction(
-            addr, addr, "0", json.dumps(info), amount)
+            addr, addr, "0", json.dumps(info), type)
         signature, hash = new_transaction.compute_signature(private_key)
 
         # Submit a transaction
@@ -139,7 +139,8 @@ def submit_file():
 def post_transaction(new_transaction, signature, hash):
     post_object = {'from_addr': new_transaction.from_addr,
                    'to_addr': new_transaction.to_addr,
-                   'amount': new_transaction.amount,
+                   'type': new_transaction.type,
+                   'timestamp': new_transaction.timestamp,
                    'previous_hash': new_transaction.previous_hash,
                    "message": new_transaction.message,
                    "signature": signature,
@@ -157,19 +158,26 @@ def transaction(trans_data):
                                        trans_data["to_addr"],
                                        trans_data["previous_hash"],
                                        trans_data["message"],
-                                       trans_data["amount"])
+                                       trans_data["type"],
+                                       trans_data["timestamp"])
     try:
         if Transaction.is_valid(trans_data, trans_data['signature'], trans_data['hash']):
            # 私钥验证交给区块链进行
             if trans_data["private_key"]:
+                # transact file key
+                info=json.loads(previous_transaction.message)
+                private_key = myrsa.load_str_private_key(request.form["private_key"])
+                new_addr = myrsa.load_str_publick_key(trans_data["new_addr"])
+                key = myrsa.decrypt(info['key'], private_key)
+                ec_key = myrsa.encrypt(key, new_addr)
+                info['key']=ec_key.decode()
+
                 new_transaction = Transaction(previous_transaction.to_addr,
                                               trans_data["new_addr"],
                                               trans_data["hash"],
-                                              previous_transaction.message,
-                                              previous_transaction.amount)
+                                              json.dumps(info),
+                                              previous_transaction.type)
 
-                private_key = myrsa.load_str_private_key(
-                    trans_data["private_key"])
                 signature, hash = new_transaction.compute_signature(
                     private_key)
 

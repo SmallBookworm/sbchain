@@ -40,14 +40,17 @@ def new_transaction():
     # Then we add the transaction to our list
     
     if Transaction.is_valid(new_txion,new_txion['signature'],new_txion['hash']):
-        blockchain.add_new_transaction(new_txion)
+        #broadcast transaction
+        if blockchain.add_new_transaction(new_txion):
+            broadcast_transaction(new_txion)
+
         # Because the transaction was successfully
         # submitted, we log it to our console
         print("New transaction")
         print("hash: {0}".format(new_txion['hash']))
         print("FROM: {0}".format(new_txion['from_addr']))
         print("TO: {0}".format(new_txion['to_addr']))
-        print("AMOUNT: {0}\n".format(new_txion['amount']))
+        print("TYPE: {0}\n".format(new_txion['type']))
         # mine auto
         mine_unconfirmed_transactions()
 
@@ -56,6 +59,14 @@ def new_transaction():
     else:
         return "Transaction submission failed. Wrong signature\n", 400
     
+def broadcast_transaction(new_txion):
+    for peer in peers:
+        if peer != localhost_url:
+            url = "{}/new_transaction".format(peer)
+            headers = {'Content-Type': "application/json"}
+            requests.post(url,
+                          json=new_txion,
+                          headers=headers)
 
 # endpoint to return the node's copy of the chain.
 # Our application will be using this endpoint to query
