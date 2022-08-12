@@ -1,4 +1,6 @@
+import math
 from operator import truediv
+import random
 import re
 import time
 from unittest import result
@@ -13,6 +15,7 @@ class Blockchain:
         self.unconfirmed_transactions = []
         self.unconfirmed_timestamp = []
         self.chain = []
+        self.votes = {}
 
     def create_genesis_block(self):
         """
@@ -27,6 +30,14 @@ class Blockchain:
     @property
     def last_block(self):
         return self.chain[-1]
+
+    def vote(self, peers, localhost_url):
+        self.votes[localhost_url] = []
+        total = math.ceil(len(peers)/2)
+        for peer in peers:
+            vote = random.randint(0, total)
+            self.votes[localhost_url].append({'address': peer, 'votes': vote})
+            total -= vote
 
     def add_block(self, block, proof):
         """

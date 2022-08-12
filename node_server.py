@@ -10,6 +10,7 @@ from app.utils import hostip
 from blockchain import Blockchain
 from block import Block
 from app.transaction import Transaction
+from flask_apscheduler import APScheduler
 
 app = Flask(__name__)
 
@@ -17,10 +18,58 @@ app = Flask(__name__)
 blockchain = Blockchain()
 blockchain.create_genesis_block()
 
+# only port:8000
+localhost_url = "http://"+hostip.get_host_ip()+":8000"
 # the address to other participating members of the network
 peers = set()
-# only port:8000
-localhost_url="http://"+hostip.get_host_ip()+":8000"
+peers.add(localhost_url)
+
+# create block when there are transactions  every 10 seconds and vote every 1 minute
+
+
+class Config(object):
+    JOBS = [
+        {
+            'id': 'job1',
+            'func': 'node_server:create_block',
+            'trigger': 'interval',
+            'seconds': 5
+        },
+        {
+            'id': 'job2',
+            'func': 'node_server:vote',
+            'args': (peers, localhost_url),
+            'trigger': 'interval',
+            'seconds': 10
+        }
+    ]
+    SCHEDULER_API_ENABLED = True
+
+
+def create_block():
+    pass
+
+
+def vote(peers, localhost_url):
+    blockchain.vote(peers, localhost_url)
+    print(blockchain.votes[localhost_url])
+    #缺少节点公私钥生成及验证
+    broadcast_transaction({'from_addr': localhost_url,
+                           'to_addr': 'all_node',
+                           'type': 4,
+                           
+                           'timestamp': time.time(),
+                           'previous_hash': '',
+                           "message": new_transaction.message,
+                           "signature": '',
+                           "hash": ''})
+
+
+# app.config.from_object(Config())
+
+# scheduler = APScheduler()
+# scheduler.init_app(app)
+# scheduler.start()
 
 
 # endpoint to submit a new transaction. This will be used by
@@ -35,12 +84,10 @@ def new_transaction():
     #         #return "Invalid transaction data", 404
     #         new_txion[field]=''
 
-
-    
     # Then we add the transaction to our list
-    
-    if Transaction.is_valid(new_txion,new_txion['signature'],new_txion['hash']):
-        #broadcast transaction
+
+    if Transaction.is_valid(new_txion, new_txion['signature'], new_txion['hash']):
+        # broadcast transaction
         if blockchain.add_new_transaction(new_txion):
             broadcast_transaction(new_txion)
 
@@ -58,7 +105,8 @@ def new_transaction():
         return "Transaction submission successful\n", 201
     else:
         return "Transaction submission failed. Wrong signature\n", 400
-    
+
+
 def broadcast_transaction(new_txion):
     for peer in peers:
         if peer != localhost_url:
@@ -71,6 +119,8 @@ def broadcast_transaction(new_txion):
 # endpoint to return the node's copy of the chain.
 # Our application will be using this endpoint to query
 # all the posts to display.
+
+
 @app.route('/chain', methods=['GET'])
 def get_chain():
     chain_data = []
@@ -105,9 +155,7 @@ def register_new_peers():
     node_address = request.get_json()["node_address"]
     if not node_address:
         return "Invalid data", 400
-    # add self
-    if not peers:
-        peers.add(localhost_url)
+
     # Add the node to the peer list
     peers.add(node_address)
 
@@ -217,6 +265,7 @@ def consensus():
 
     return False
 
+
 def find_new_chains():
     # Get the blockchains of every other node
     other_chains = []
@@ -224,7 +273,7 @@ def find_new_chains():
         # Get their chains using a GET request
         response = requests.get('{}/chain'.format(node))
         chain_data = response.json()
-    
+
         other_chains.append(chain_data)
     return other_chains
 
