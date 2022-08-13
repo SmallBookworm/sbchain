@@ -1,3 +1,4 @@
+import copy
 import math
 from operator import truediv
 import random
@@ -39,7 +40,7 @@ class Blockchain:
             self.votes[localhost_url].append({'address': peer, 'votes': vote})
             total -= vote
 
-    def add_block(self, block, proof):
+    def add_block(self, block:Block, proof):
         """
         A function that adds the block to the chain after verification.
         Verification includes:
@@ -54,6 +55,13 @@ class Blockchain:
 
         if not Blockchain.is_valid_proof(block, proof):
             return False
+
+        #remove transactions in block
+        for trans in block.transactions:
+            if trans['timestamp'] in self.unconfirmed_timestamp:
+                index = self.unconfirmed_timestamp.index(trans['timestamp'])
+                del self.unconfirmed_timestamp[index]
+                del self.unconfirmed_transactions[index]
 
         block.hash = proof
         self.chain.append(block)
@@ -123,13 +131,12 @@ class Blockchain:
         last_block = self.last_block
 
         new_block = Block(index=last_block.index + 1,
-                          transactions=self.unconfirmed_transactions,
+                          transactions=copy.deepcopy(self.unconfirmed_transactions),
                           timestamp=time.time(),
                           previous_hash=last_block.hash)
 
         proof = self.proof_of_work(new_block)
-        self.add_block(new_block, proof)
-
-        self.unconfirmed_transactions = []
-        self.unconfirmed_timestamp = []
-        return True
+        if self.add_block(new_block, proof):
+            return True
+        else:
+            return False

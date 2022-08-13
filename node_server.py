@@ -1,4 +1,5 @@
 import base64
+import sys
 import ecdsa
 from cgitb import reset
 import json
@@ -18,8 +19,17 @@ app = Flask(__name__)
 blockchain = Blockchain()
 blockchain.create_genesis_block()
 
-# only port:8000
-localhost_url = "http://"+hostip.get_host_ip()+":8000"
+# get port from command "flask run"
+port='8000'
+try:
+    port_index=sys.argv.index('--port')+1
+    port=sys.argv[port_index]
+except Exception as e:
+    print(e)
+    print("default port: "+port)
+
+localhost_url = "http://"+hostip.get_host_ip()+":"+port
+print("localhost_url: "+localhost_url)
 # the address to other participating members of the network
 peers = set()
 peers.add(localhost_url)
@@ -98,8 +108,7 @@ def new_transaction():
         print("FROM: {0}".format(new_txion['from_addr']))
         print("TO: {0}".format(new_txion['to_addr']))
         print("TYPE: {0}\n".format(new_txion['type']))
-        # mine auto
-        mine_unconfirmed_transactions()
+        
 
         # Then we let the client know it worked out
         return "Transaction submission successful\n", 201
@@ -145,7 +154,7 @@ def mine_unconfirmed_transactions():
         consensus()
         if chain_length == len(blockchain.chain):
             # announce the recently mined block to the network
-            announce_new_block(blockchain.last_block, request.host_url)
+            announce_new_block(blockchain.last_block)
         return "Block #{} is mined.".format(blockchain.last_block.index)
 
 
@@ -278,14 +287,14 @@ def find_new_chains():
     return other_chains
 
 
-def announce_new_block(block, host_url):
+def announce_new_block(block):
     """
     A function to announce to the network once a block has been mined.
     Other blocks can simply verify the proof of work and add it to their
     respective chains.
     """
     for peer in peers:
-        if peer != host_url:
+        if  peer != localhost_url:
             url = "{}/add_block".format(peer)
             headers = {'Content-Type': "application/json"}
             requests.post(url,
