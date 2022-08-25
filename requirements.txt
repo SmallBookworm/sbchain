@@ -1,3 +1,17 @@
-Flask~=1.1
-requests~=2.22
-Flask-APScheduler~=1.12.4
+<filechain.Filechain object at 0x000002167A8B62F0>
+    chain: [<filechain.Fileblock...67DC6FAC0>]
+        0: <filechain.Fileblock object at 0x000002167DC6FAC0>
+            file: '{"creater": "-----BEGIN PUBLIC KEY-----\\r\\nMIIBIjANBgkqhkiG9w0BAQ...dyt+Qkmm6GaWk1He41LaQmB\\r\\n6QIDAQAB\\r\\n-----END PUBLIC KEY-----",
+                    "filename": "a_2.txt", 
+                    "key": "hO1DJoRN3JSPUOZSarvH3shcbUB4w9/5GFliQRn5NyaeNU2qAWMH/YqgG+zSXrxo2LRgsFQdaZEDEyxUerqQ+Cv760il4FS5YQwnHEZJxmeXx/TglmY7nz5rhAhWWj1n2yvd4AZanpH49EYv+ljg5ZFODtHm5PyUjkg5E/zg8Tlih7CyBbekxgA9WAQSztbEqtNkI/IADI00vnVYrxMTwnHoQ3SfVMQWo0sP902AAq/RHPDnwiocJrJgDVJ2+W3nluvnQeYcxZYvFqvLo4CFbTTnjvGNGi0EcZYx7zL3ojda2QNdmOa+U4Lj13Yheof/TpUkFbBSLTBysTu2D18svg==",
+                    "hash": "QmfWVbdmvbauvLshw6ZUZZS2nGQQ6dx6r5EBTUJcSGrCzn"}'
+            users: [{'addr': '-----BEGIN PUBLIC KE...C KEY-----', 'from_user': '-----BEGIN PUBLIC KE...C KEY-----', 'transactions': [...]}]
+                0: {'addr': '-----BEGIN PUBLIC KE...C KEY-----',
+                 'from_user': '-----BEGIN PUBLIC KE...C KEY-----',
+                  'transactions': [{...}]}
+                len(): 1
+        len(): 1
+    files: ['QmfWVbdmvbauvLshw6ZU...TUJcSGrCzn']
+    users: {'-----BEGIN PUBLIC KE...C KEY-----'}
+
+

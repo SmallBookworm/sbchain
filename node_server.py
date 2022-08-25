@@ -13,6 +13,8 @@ from block import Block
 from app.transaction import Transaction
 from flask_apscheduler import APScheduler
 
+from filechain import Filechain
+
 app = Flask(__name__)
 
 # the node's copy of blockchain
@@ -303,3 +305,37 @@ def announce_new_block(block):
 
 # Uncomment this line if you want to specify the port number in the code
 #app.run(debug=True, port=8000)
+
+#filechain
+filechain=Filechain()
+
+@app.route('/file/new_transaction', methods=['POST'])
+def file_new_transaction():
+    new_txion = request.get_json()
+    # required_fields = ["author", "content"]
+
+    # for field in required_fields:
+    #     if not new_txion.get(field):
+    #         #return "Invalid transaction data", 404
+    #         new_txion[field]=''
+
+    # Then we add the transaction to our list
+
+    if Transaction.is_valid(new_txion, new_txion['signature'], new_txion['hash']):
+        # broadcast transaction
+        if filechain.add_trans(new_txion):
+            broadcast_transaction(new_txion)
+
+        # Because the transaction was successfully
+        # submitted, we log it to our console
+        print("New transaction")
+        print("hash: {0}".format(new_txion['hash']))
+        print("FROM: {0}".format(new_txion['from_addr']))
+        print("TO: {0}".format(new_txion['to_addr']))
+        print("TYPE: {0}\n".format(new_txion['type']))
+        
+
+        # Then we let the client know it worked out
+        return "Transaction submission successful\n", 201
+    else:
+        return "Transaction submission failed. Wrong signature\n", 400
